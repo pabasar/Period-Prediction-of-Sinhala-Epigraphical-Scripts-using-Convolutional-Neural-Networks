@@ -37,7 +37,7 @@ drive.mount('/content/drive')
 """Segmenting function as follows"""
 
 def segment(inimg):
-  img_cpy = inimg.copy()    # Make a copy of the image 
+  imgCpy = inimg.copy()    # Make a copy of the image 
   imgIni = cv2.cvtColor(inimg, cv2.COLOR_BGR2GRAY)    # Convert the input image to grayscale
   imgIni = cv2.fastNlMeansDenoising(imgIni,None,10,7,21)    # Eliminate some noise if having any
   imgIni = cv2.GaussianBlur(imgIni, (3, 3), 0)    # Add Gaussian Blur to make the shapes smooth
@@ -58,15 +58,15 @@ def segment(inimg):
   # The following transformations are applied to isolate and crop each white blob in the image and save them in a different directory
   # Referred from: https://newbedev.com/extract-all-bounding-boxes-using-opencv-python
 
-  cnts = cv2.findContours(img_t, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-  cnts = cnts[0] if len(cnts) == 2 else cnts[1]
+  contrs = cv2.findContours(img_t, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+  contrs = contrs[0] if len(contrs) == 2 else contrs[1]
 
   seg_num = 0
-  for c in cnts:
-    x,y,w,h = cv2.boundingRect(c)
+  for i in contrs:
+    x,y,w,h = cv2.boundingRect(i)
     seg = inimg[y:y+h, x:x+w]
     cv2.imwrite('/content/drive/MyDrive/classification_of_inscriptions_periods/step3_prediction/images/segmented/seg_{}.jpg'.format(seg_num), seg)
-    cv2.rectangle(img_cpy,(x,y),(x+w,y+h),(36,255,12),2)
+    cv2.rectangle(imgCpy,(x,y),(x+w,y+h),(36,255,12),2)
     seg_num += 1
 
   # Now the segmentation is completed. But in addition to letters, unwanted white blobs also segmented. They are eliminated in the next pre-processing function
@@ -79,7 +79,7 @@ for f in files:
   os.remove(f)
 
 # To read the input image, a part of estampage containing a few letters and call the segment function
-img = cv2.imread("/content/drive/MyDrive/classification_of_inscriptions_periods/step3_prediction/images/insc_images_test/transitional1.jpg")
+img = cv2.imread("/content/drive/MyDrive/classification_of_inscriptions_periods/step3_prediction/images/insc_images_test/mdv_test.jpg")
 segment(img)
 
 """The Pre-processing function as follows. The function is similar to the pre-processing function in first step. But in here, output images are letters fitted in 128x128 squared boxes, since the input size of the trained model is 128x128"""
@@ -158,8 +158,8 @@ def prep(inimg, name):
     # In here the largest blob is the letter shape
     # Referred from: https://www.javaer101.com/en/article/34980509.html
 
-    inter = cv2.morphologyEx(img_t, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (1, 1)))
-    cnts, _ = cv2.findContours(inter, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    temp = cv2.morphologyEx(img_t, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (1, 1)))
+    contrs, _ = cv2.findContours(temp, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
     w1 = np.sum(img_t == 255)
     b1 = np.sum(img_t == 0)   
@@ -167,11 +167,11 @@ def prep(inimg, name):
     # In some cases, the processed images upto now can be totally white or black, To eliminate these kinds of images the following condition is applied
 
     if w1 != 0 and b1 != 0:
-      cnt = max(cnts, key=cv2.contourArea)
-      out = np.zeros(img_t.shape, np.uint8)
-      cv2.drawContours(out, [cnt], -1, 255, cv2.FILLED)
-      out = cv2.bitwise_and(img_t, out)
-      img_shp = cv2.bitwise_not(out) 
+      cnts = max(contrs, key=cv2.contourArea)
+      img_blk = np.zeros(img_t.shape, np.uint8)
+      cv2.drawContours(img_blk, [cnts], -1, 255, cv2.FILLED)
+      img_blk = cv2.bitwise_and(img_t, img_blk)
+      img_shp = cv2.bitwise_not(img_blk) 
       img_med = cv2.cvtColor(img_shp, cv2.COLOR_BGR2RGB)
 
       # At this stage, the image only consists of the white letter in black background, without unwanted blobs
@@ -180,12 +180,12 @@ def prep(inimg, name):
       # Referred from: https://newbedev.com/how-to-crop-or-remove-white-background-from-an-image
 
       kernel = cv2.getStructuringElement(cv2.MORPH_CROSS,(3,3))
-      img_mphrd = cv2.morphologyEx(out, cv2.MORPH_CLOSE, kernel)
+      img_mphrd = cv2.morphologyEx(img_blk, cv2.MORPH_CLOSE, kernel)
 
-      cnts2 = cv2.findContours(img_mphrd, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
-      cnt2 = sorted(cnts2, key=cv2.contourArea)[-1]
+      contrs2 = cv2.findContours(img_mphrd, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
+      cnts2 = sorted(contrs2, key=cv2.contourArea)[-1]
 
-      x,y,w,h = cv2.boundingRect(cnt2)
+      x,y,w,h = cv2.boundingRect(cnts2)
       img_dst = img_med[y:y+h, x:x+w]
       img_dst = cv2.bitwise_not(img_dst) 
 
@@ -193,17 +193,17 @@ def prep(inimg, name):
       # Referred from: https://newbedev.com/resize-an-image-without-distortion-opencv
 
       h, w = img_dst.shape[:2]
-      c = None if len(img_dst.shape) < 3 else img_dst.shape[2]
+      cnr = None if len(img_dst.shape) < 3 else img_dst.shape[2]
       if h == w: return cv2.resize(img_dst, (128, 128), cv2.INTER_AREA)
       if h > w: dif = h
       else:     dif = w
       x_pos = int((dif - w)/2.)
       y_pos = int((dif - h)/2.)
-      if c is None:
+      if cnr is None:
         mask = np.zeros((dif, dif), dtype=img_dst.dtype)
         mask[y_pos:y_pos+h, x_pos:x_pos+w] = img_dst[:h, :w]
       else:
-        mask = np.zeros((dif, dif, c), dtype=img_dst.dtype)
+        mask = np.zeros((dif, dif, cnr), dtype=img_dst.dtype)
         mask[y_pos:y_pos+h, x_pos:x_pos+w, :] = img_dst[:h, :w, :]
 
       img_out = cv2.resize(mask, (128, 128), cv2.INTER_AREA)
