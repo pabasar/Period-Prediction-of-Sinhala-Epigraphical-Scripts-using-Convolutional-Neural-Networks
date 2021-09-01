@@ -107,8 +107,8 @@ def prep(inimg, name):
     # In here the largest blob is the letter shape
     # Referred from: https://www.javaer101.com/en/article/34980509.html
 
-    inter = cv2.morphologyEx(img_t, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (1, 1)))
-    cnts, _ = cv2.findContours(inter, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    temp = cv2.morphologyEx(img_t, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (1, 1)))
+    contrs, _ = cv2.findContours(temp, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
     w1 = np.sum(img_t == 255)
     b1 = np.sum(img_t == 0)   
@@ -116,11 +116,11 @@ def prep(inimg, name):
     # In some cases, the processed images upto now can be totally white or black, To eliminate these kinds of images the following condition is applied
 
     if w1 != 0 and b1 != 0:
-      cnt = max(cnts, key=cv2.contourArea)
-      out = np.zeros(img_t.shape, np.uint8)
-      cv2.drawContours(out, [cnt], -1, 255, cv2.FILLED)
-      out = cv2.bitwise_and(img_t, out)
-      img_shp = cv2.bitwise_not(out) 
+      cnts = max(contrs, key=cv2.contourArea)
+      img_blk = np.zeros(img_t.shape, np.uint8)
+      cv2.drawContours(img_blk, [cnts], -1, 255, cv2.FILLED)
+      img_blk = cv2.bitwise_and(img_t, img_blk)
+      img_shp = cv2.bitwise_not(img_blk) 
       img_med = cv2.cvtColor(img_shp, cv2.COLOR_BGR2RGB)
 
       # At this stage, the image only consists of the white letter in black background, without unwanted blobs
@@ -129,12 +129,12 @@ def prep(inimg, name):
       # Referred from: https://newbedev.com/how-to-crop-or-remove-white-background-from-an-image
 
       kernel = cv2.getStructuringElement(cv2.MORPH_CROSS,(3,3))
-      img_mphrd = cv2.morphologyEx(out, cv2.MORPH_CLOSE, kernel)
+      img_mphrd = cv2.morphologyEx(img_blk, cv2.MORPH_CLOSE, kernel)
 
-      cnts2 = cv2.findContours(img_mphrd, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
-      cnt2 = sorted(cnts2, key=cv2.contourArea)[-1]
+      contrs2 = cv2.findContours(img_mphrd, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
+      cnts2 = sorted(contrs2, key=cv2.contourArea)[-1]
 
-      x,y,w,h = cv2.boundingRect(cnt2)
+      x,y,w,h = cv2.boundingRect(cnts2)
       img_dst = img_med[y:y+h, x:x+w]
       img_dst = cv2.bitwise_not(img_dst) 
 
@@ -142,17 +142,17 @@ def prep(inimg, name):
       # Referred from: https://newbedev.com/resize-an-image-without-distortion-opencv
 
       h, w = img_dst.shape[:2]
-      c = None if len(img_dst.shape) < 3 else img_dst.shape[2]
+      cnr = None if len(img_dst.shape) < 3 else img_dst.shape[2]
       if h == w: return cv2.resize(img_dst, (64, 64), cv2.INTER_AREA)
       if h > w: dif = h
       else:     dif = w
       x_pos = int((dif - w)/2.)
       y_pos = int((dif - h)/2.)
-      if c is None:
+      if cnr is None:
         mask = np.zeros((dif, dif), dtype=img_dst.dtype)
         mask[y_pos:y_pos+h, x_pos:x_pos+w] = img_dst[:h, :w]
       else:
-        mask = np.zeros((dif, dif, c), dtype=img_dst.dtype)
+        mask = np.zeros((dif, dif, cnr), dtype=img_dst.dtype)
         mask[y_pos:y_pos+h, x_pos:x_pos+w, :] = img_dst[:h, :w, :]
 
       img_out = cv2.resize(mask, (64, 64), cv2.INTER_AREA)
