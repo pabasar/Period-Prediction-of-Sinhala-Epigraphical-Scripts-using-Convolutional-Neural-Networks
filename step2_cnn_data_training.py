@@ -3,6 +3,8 @@
 from google.colab import drive
 drive.mount('/content/drive')
 
+"""# New Section"""
+
 import numpy as np
 import tensorflow as tf
 import random as python_random
@@ -212,33 +214,30 @@ model.summary()
 batchSize = 32
 epoches =110;
 image_size = 128;
-train_path = '/content/drive/MyDrive/classification_of_inscriptions_periods/step2_training/ceylon_epigraphy_periods/train'
-test_path = '/content/drive/MyDrive/classification_of_inscriptions_periods/step2_training/ceylon_epigraphy_periods/test'
+train_path = '/content/drive/MyDrive/classification_of_inscriptions_periods/step2_training/128/ceylon_epigraphy_periods/train'
+test_path = '/content/drive/MyDrive/classification_of_inscriptions_periods/step2_training/128/ceylon_epigraphy_periods/test'
 train_set, test_set, validation_set = set_data(train_path,test_path, batchSize, image_size)
-
-new_model = tf.keras.models.load_model('/content/drive/MyDrive/classification_of_inscriptions_periods/step2_training/Finalmodels/mymodel')
-new_model.summary()
 
 batchSize = 32
 epoches =110;
 image_size = 128;
-train_path = '/content/drive/MyDrive/classification_of_inscriptions_periods/step2_training/ceylon_epigraphy_periods/train'
-test_path = '/content/drive/MyDrive/classification_of_inscriptions_periods/step2_training/ceylon_epigraphy_periods/test'
+train_path = '/content/drive/MyDrive/classification_of_inscriptions_periods/step2_training/128/ceylon_epigraphy_periods/train'
+test_path = '/content/drive/MyDrive/classification_of_inscriptions_periods/step2_training/128/ceylon_epigraphy_periods/test'
 train_set, test_set, validation_set = set_data(train_path,test_path, batchSize, image_size)
 model = create_model()
-checkpoint_path = "/content/drive/MyDrive/classification_of_inscriptions_periods/step2_training/temp_models/weights_best_VGGnew.hdf5"
+checkpoint_path = "/content/drive/MyDrive/classification_of_inscriptions_periods/step2_training/128/weights_best_VGGnew.hdf5"
 checkpoint_dir = os.path.dirname(checkpoint_path)
 cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
                                                   monitor='val_categorical_accuracy',mode='max',
                                                 save_best_only=True,
                                                 verbose=1)
 history=model.fit(train_set, epochs = epoches, validation_data= validation_set, callbacks=[cp_callback], shuffle=True)
-model.save('/content/drive/MyDrive/classification_of_inscriptions_periods/step2_training/Finalmodels/mymodel')
+model.save('/content/drive/MyDrive/classification_of_inscriptions_periods/step2_training/128/model/mymodel')
 results = model.evaluate(test_set,batch_size=32)
 accuracy = results[1]
 predict_labels=model.predict(test_set,batch_size=batchSize)
 test_labels=test_set.classes
-plot_hist(history)
+#plot_hist(history)
 print(accuracy)
 
 print(test_labels)
@@ -250,13 +249,13 @@ confusion = confusion_matrix(test_labels, predict_labels.argmax(axis=1))
 print('Confusion Matrix\n')
 print(confusion)
 
-mode_loaded = keras.models.load_model('/content/drive/MyDrive/classification_of_inscriptions_periods/step2_training/Finalmodels/mymodel')
+mode_loaded = keras.models.load_model('/content/drive/MyDrive/classification_of_inscriptions_periods/step2_training/128/model/mymodel')
 
 batchSize = 32
 epoches =110;
 image_size = 128;
-train_path = '/content/drive/MyDrive/classification_of_inscriptions_periods/step2_training/ceylon_epigraphy_periods/train'
-test_path = '/content/drive/MyDrive/classification_of_inscriptions_periods/step2_training/ceylon_epigraphy_periods/test'
+train_path = '/content/drive/MyDrive/classification_of_inscriptions_periods/step2_training/128/ceylon_epigraphy_periods/train'
+test_path = '/content/drive/MyDrive/classification_of_inscriptions_periods/step2_training/128/ceylon_epigraphy_periods/test'
 train_set, test_set, validation_set = set_data(train_path,test_path, batchSize, image_size)
 results = mode_loaded.evaluate(test_set,batch_size=32)
 accuracy = results[1]
