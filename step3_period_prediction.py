@@ -223,7 +223,7 @@ for f in files:
 
 # To wait until the segmengtaion completed
 import time
-time.sleep(5)
+time.sleep(3)
 
 # To read all the segmented images in the segmented directory and call the pre-processing function for each image
 for i in os.listdir('/content/drive/MyDrive/classification_of_inscriptions_periods/step3_prediction/images/segmented/'):
