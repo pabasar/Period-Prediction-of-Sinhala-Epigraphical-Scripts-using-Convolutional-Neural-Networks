@@ -6,7 +6,6 @@
 Firstly, necessary libraries need to be imported as follows
 """
 
-# Commented out IPython magic to ensure Python compatibility.
 import numpy as np
 import pandas as pd
 # %matplotlib inline
