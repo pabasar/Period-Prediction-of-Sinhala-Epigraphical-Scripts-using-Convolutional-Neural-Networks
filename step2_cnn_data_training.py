@@ -3,7 +3,7 @@
 from google.colab import drive
 drive.mount('/content/drive')
 
-"""# New Section"""
+"""Import Libraries"""
 
 import numpy as np
 import tensorflow as tf
@@ -143,96 +143,23 @@ def unfreeze_model(model, num_of_layers):
             layer.trainable = True
     return model
 
-basemodel = EfficientNetB0(include_top=False, input_shape=(128,128,3), weights="imagenet")
-basemodel.trainable = True
-# basemodel.summary()
-basemodel.trainable = False
-basemodel = unfreeze_model(basemodel, -16)
-for i, layer in enumerate(basemodel.layers):
-    print(i, layer.name, layer.trainable)
-x = basemodel.output
-x = layers.GlobalAveragePooling2D(name="avg_pool")(x)
-x = layers.BatchNormalization()(x)
-x = layers.Dropout(0.5)(x)
-outputs = layers.Dense(5, activation="softmax", name="pred")(x)
-model = tf.keras.Model(basemodel.input, outputs)
-optimizer = tf.keras.optimizers.Adam(learning_rate=0.0005)
-model.compile(optimizer=optimizer, loss="categorical_crossentropy", metrics=["accuracy"])
-model.summary()
-
-basemodel = Xception(include_top=False, weights="imagenet", input_shape=(128,128,3))
-# basemodel.summary()
-basemodel.trainable = False
-basemodel = unfreeze_model(basemodel, -3)
-for i, layer in enumerate(basemodel.layers):
-    print(i, layer.name, layer.trainable)
-x = basemodel.output
-se = layers.GlobalAveragePooling2D(name="ch_pool")(x)
-se = layers.Reshape((1,1,2048))(se)
-se = layers.Dense(128,activation="swish",kernel_initializer='he_normal', use_bias=False)(se)
-se = layers.Dense(2048,activation="sigmoid",kernel_initializer='he_normal', use_bias=False)(se)
-x = layers.Multiply()([se, x])
-x = layers.GlobalAveragePooling2D(name="avg_pool")(x)
-x = layers.BatchNormalization()(x)
-x = layers.Dropout(0.5)(x)
-outputs = layers.Dense(5, activation="softmax", name="pred")(x)
-model = tf.keras.Model(basemodel.input, outputs)
-optimizer = tf.keras.optimizers.Adam(learning_rate=0.0002)
-model.compile(optimizer=optimizer, loss="categorical_crossentropy", metrics=["accuracy"])
-model.summary()
-# plot_model(XceptionModel,show_shapes=True, show_layer_names=True)
-
-VGGModel = VGG16(include_top=False, weights="imagenet", input_shape=(128,128,3))
-basemodel = Model(VGGModel.input, VGGModel.layers[-2].output)
-basemodel.trainable = False
-basemodel = unfreeze_model(basemodel, -3)
-# basemodel.summary()
-for i, layer in enumerate(basemodel.layers):
-    print(i, layer.name, layer.trainable)
-x = basemodel.output
-se = layers.GlobalAveragePooling2D(name="ch_pool")(x)
-se = layers.Reshape((1,1,512))(se)
-se = layers.Dense(32,activation="swish",kernel_initializer='he_normal', use_bias=False)(se)
-se = layers.Dense(512,activation="sigmoid",kernel_initializer='he_normal', use_bias=False)(se)
-x = layers.Multiply()([se, x])
-x = layers.GlobalAveragePooling2D(name="avg_pool")(x)
-# x = layers.BatchNormalization()(x)
-x = layers.Dropout(0.4)(x)
-x = layers.Dense(256, activation="relu")(x)
-x = layers.Dropout(0.3)(x)
-x = layers.Dense(128, activation="relu")(x)
-x = layers.Dropout(0.3)(x)
-outputs = layers.Dense(5, activation="softmax", name="pred")(x)
-model = tf.keras.Model(basemodel.input, outputs)
-optimizer = tf.keras.optimizers.Adam(learning_rate=0.0001)
-model.compile(optimizer=optimizer, loss="categorical_crossentropy", metrics=["categorical_accuracy"])
-model.summary()
-# plot_model(model,show_shapes=True, show_layer_names=True)
-
 """Training"""
 
 batchSize = 32
-epoches =110;
+epoches =100;
 image_size = 128;
-train_path = '/content/drive/MyDrive/classification_of_inscriptions_periods/step2_training/128/ceylon_epigraphy_periods/train'
-test_path = '/content/drive/MyDrive/classification_of_inscriptions_periods/step2_training/128/ceylon_epigraphy_periods/test'
-train_set, test_set, validation_set = set_data(train_path,test_path, batchSize, image_size)
-
-batchSize = 32
-epoches =110;
-image_size = 128;
-train_path = '/content/drive/MyDrive/classification_of_inscriptions_periods/step2_training/128/ceylon_epigraphy_periods/train'
-test_path = '/content/drive/MyDrive/classification_of_inscriptions_periods/step2_training/128/ceylon_epigraphy_periods/test'
+train_path = '/content/drive/MyDrive/classification_of_inscriptions_periods/step2_training/ceylon_epigraphy_periods/train'
+test_path = '/content/drive/MyDrive/classification_of_inscriptions_periods/step2_training/ceylon_epigraphy_periods/test'
 train_set, test_set, validation_set = set_data(train_path,test_path, batchSize, image_size)
 model = create_model()
-checkpoint_path = "/content/drive/MyDrive/classification_of_inscriptions_periods/step2_training/128/weights_best_VGGnew.hdf5"
+checkpoint_path = "/content/drive/MyDrive/classification_of_inscriptions_periods/step2_training/img_update/weights_best_VGGnew.hdf5"
 checkpoint_dir = os.path.dirname(checkpoint_path)
 cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
                                                   monitor='val_categorical_accuracy',mode='max',
                                                 save_best_only=True,
                                                 verbose=1)
 history=model.fit(train_set, epochs = epoches, validation_data= validation_set, callbacks=[cp_callback], shuffle=True)
-model.save('/content/drive/MyDrive/classification_of_inscriptions_periods/step2_training/128/model/mymodel')
+model.save('/content/drive/MyDrive/classification_of_inscriptions_periods/step2_training/img_update/model/mymodel')
 results = model.evaluate(test_set,batch_size=32)
 accuracy = results[1]
 predict_labels=model.predict(test_set,batch_size=batchSize)
@@ -249,13 +176,13 @@ confusion = confusion_matrix(test_labels, predict_labels.argmax(axis=1))
 print('Confusion Matrix\n')
 print(confusion)
 
-mode_loaded = keras.models.load_model('/content/drive/MyDrive/classification_of_inscriptions_periods/step2_training/128/model/mymodel')
+mode_loaded = keras.models.load_model('/content/drive/MyDrive/classification_of_inscriptions_periods/step2_training/img_update/model/mymodel')
 
 batchSize = 32
-epoches =110;
+epoches =100;
 image_size = 128;
-train_path = '/content/drive/MyDrive/classification_of_inscriptions_periods/step2_training/128/ceylon_epigraphy_periods/train'
-test_path = '/content/drive/MyDrive/classification_of_inscriptions_periods/step2_training/128/ceylon_epigraphy_periods/test'
+train_path = '/content/drive/MyDrive/classification_of_inscriptions_periods/step2_training/ceylon_epigraphy_periods/train'
+test_path = '/content/drive/MyDrive/classification_of_inscriptions_periods/step2_training/ceylon_epigraphy_periods/test'
 train_set, test_set, validation_set = set_data(train_path,test_path, batchSize, image_size)
 results = mode_loaded.evaluate(test_set,batch_size=32)
 accuracy = results[1]
